@@ -1399,13 +1399,16 @@
         }
 
         // ==================== SCANNER MODAL ====================
+        let currentVideoStream = null;
+
         function openScanner() {
             const modal = document.getElementById('modal-overlay');
             const content = document.getElementById('modal-content');
             content.innerHTML = `
             <h3 style="font-weight:700;color:#1e293b;margin-bottom:4px;">📸 AI Food Scanner</h3>
             <p style="font-size:13px;color:#94a3b8;margin-bottom:16px;">Point camera at your food</p>
-            <div class="scanner-viewfinder">
+            <div class="scanner-viewfinder" id="camera-container">
+              <video id="camera-feed" autoplay playsinline style="width:100%;height:100%;object-fit:cover;border-radius:24px;"></video>
               <div class="scanner-corner tl"></div>
               <div class="scanner-corner tr"></div>
               <div class="scanner-corner bl"></div>
@@ -1420,9 +1423,43 @@
             <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:8px;">Also try: <span style="color:#059669;cursor:pointer;" onclick="openBarcodeScanner()">Barcode Scanner</span></p>
           `;
             modal.style.display = 'flex';
+            initializeCamera();
+        }
+
+        async function initializeCamera() {
+            const videoElement = document.getElementById('camera-feed');
+            if (!videoElement) return;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+                });
+                currentVideoStream = stream;
+                videoElement.srcObject = stream;
+            } catch (err) {
+                console.error('Camera access error:', err);
+                const container = document.getElementById('camera-container');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#ef4444;">
+                            <span style="font-size:48px;">📷</span>
+                            <p style="margin-top:12px;font-size:14px;">Camera access denied or unavailable</p>
+                            <p style="font-size:12px;color:#94a3b8;">Please allow camera permissions</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function stopCamera() {
+            if (currentVideoStream) {
+                currentVideoStream.getTracks().forEach(track => track.stop());
+                currentVideoStream = null;
+            }
         }
 
         function openBarcodeScanner() {
+            stopCamera();
             const content = document.getElementById('modal-content');
             content.innerHTML = `
             <h3 style="font-weight:700;color:#1e293b;margin-bottom:4px;">📱 Barcode Scanner</h3>
@@ -1440,6 +1477,7 @@
         }
 
         function simulateScan() {
+            stopCamera();
             closeModalDirect();
             showToast('🔍 Analyzing food...');
             setTimeout(() => {
@@ -1457,6 +1495,7 @@
         }
 
         function simulateBarcodeScan() {
+            stopCamera();
             closeModalDirect();
             showToast('📱 Scanning barcode...');
             setTimeout(() => {
@@ -1514,6 +1553,7 @@
 
         // ==================== VOICE LOG ====================
         function openVoiceLog() {
+            stopCamera();
             const content = document.getElementById('modal-content');
             content.innerHTML = `
             <h3 style="font-weight:700;color:#1e293b;margin-bottom:4px;">🎤 Voice Food Logging</h3>
@@ -1530,6 +1570,7 @@
         }
 
         function simulateVoiceLog() {
+            stopCamera();
             closeModalDirect();
             showToast('🎤 Processing voice...');
             setTimeout(() => {
@@ -1544,6 +1585,7 @@
 
         // ==================== AI COACH ====================
         function openAICoach() {
+            stopCamera();
             const content = document.getElementById('modal-content');
             content.innerHTML = `
             <h3 style="font-weight:700;color:#1e293b;margin-bottom:4px;">🧠 AI Health Coach</h3>
@@ -1597,6 +1639,7 @@
 
         // ==================== ANALYTICS ====================
         function openAnalytics() {
+            stopCamera();
             const content = document.getElementById('modal-content');
             content.innerHTML = `
             <h3 style="font-weight:700;color:#1e293b;margin-bottom:4px;">📊 Progress Analytics</h3>
@@ -1629,6 +1672,7 @@
 
         // ==================== SETTINGS ====================
         function openSettings() {
+            stopCamera();
             const content = document.getElementById('modal-content');
             content.innerHTML = `
             <h3 style="font-weight:700;color:#1e293b;margin-bottom:16px;">⚙️ Settings</h3>
@@ -1677,11 +1721,13 @@
         // ==================== MODAL ====================
         function closeModal(event) {
             if (event.target === document.getElementById('modal-overlay')) {
+                stopCamera();
                 document.getElementById('modal-overlay').style.display = 'none';
             }
         }
 
         function closeModalDirect() {
+            stopCamera();
             document.getElementById('modal-overlay').style.display = 'none';
         }
 
@@ -1758,6 +1804,7 @@
         window.showToast = showToast;
         window.toggleDarkMode = toggleDarkMode;
         window.showNutritionResult = showNutritionResult;
+        window.stopCamera = stopCamera;
     </script>
 </body>
 </html>
